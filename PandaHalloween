@@ -1,0 +1,414 @@
+/****************************************************************
+* Developer: GIGIfuntolearn.com                                                                  *
+* This source code is allowed for use in educational purpose.               *
+* Distribution is required permission from the developer.                    *
+*การเขียนโค้ดขึ้นกับเทคนิคที่ต้องการออกแบบในเกม นี่เป็นตัวอย่างหนึ่งเพื่อให้เข้าใจง่ายๆ     *
+*****************************************************************/
+
+package com.mygdx.game;
+
+import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.input.GestureDetector;
+import com.badlogic.gdx.input.GestureDetector.GestureListener;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.physics.box2d.World;
+
+public class PandaHalloween extends ApplicationAdapter  implements InputProcessor, GestureListener{
+SpriteBatch batch;
+Texture bg,obs1,obs2,obs3,obs4,obs5,obs6,obs7,obs8,panda,panda2,panda3,pandafall;
+Sprite sobs1,sobs2,sobs3,sobs4,sobs5,sobs6,sobs7,sobs8,spanda;
+OrthographicCamera camera;
+Body bodyPanda;
+int actorChAct = 0;
+int obsChAct = 0;
+String pandaState = “Normal”;
+int ptrX = 1000;
+int ptrObs[][]={{400,200,0,150,350,150,400,50}};
+int round = 0;
+World world;
+BitmapFont font;
+@Override
+public void create () {
+float w = Gdx.graphics.getWidth();
+float h = Gdx.graphics.getHeight();
+world = new World(new Vector2(0, -98f), true);
+camera = new OrthographicCamera(w, h);
+camera.position.set(w/2,h/2,0);
+batch = new SpriteBatch();
+bg = new Texture(Gdx.files.internal(“darkcave.png”));
+panda = new Texture(Gdx.files.internal(“pf1.png”));
+panda2 = new Texture(Gdx.files.internal(“pf2.png”));
+panda3 = new Texture(Gdx.files.internal(“pf3.png”));
+pandafall = new Texture(Gdx.files.internal(“pandafall1.png”));
+
+obs1 = new Texture(Gdx.files.internal(“g1.png”));
+obs2 = new Texture(Gdx.files.internal(“g2.png”));
+obs3 = new Texture(Gdx.files.internal(“g3.png”));
+obs4 = new Texture(Gdx.files.internal(“g1.png”));
+obs5 = new Texture(Gdx.files.internal(“g2.png”));
+obs6 = new Texture(Gdx.files.internal(“g3.png”));
+obs7 = new Texture(Gdx.files.internal(“g1.png”));
+obs8 = new Texture(Gdx.files.internal(“g2.png”));
+spanda = new Sprite(panda);
+spanda.setPosition(w/2-spanda.getWidth(), h/2);
+sobs1 = new Sprite(obs1);
+sobs2 = new Sprite(obs2);
+sobs3 = new Sprite(obs3);
+sobs4 = new Sprite(obs4);
+sobs5 = new Sprite(obs5);
+sobs6 = new Sprite(obs6);
+sobs7 = new Sprite(obs7);
+sobs8 = new Sprite(obs8);
+releaseObstacle();
+font = new BitmapFont(Gdx.files.internal(“fonts/gillsans-24.fnt”));
+font.getData().setScale(1,1);
+font.getRegion().setRegionHeight(3);
+font.setUseIntegerPositions(true);
+font.setColor(Color.RED);
+GestureDetector gd = new GestureDetector(this);
+Gdx.input.setInputProcessor(gd);
+
+}
+
+//Box2D ไว้แสดงเวลาที่แพนด้าจะตกจากฟ้า เมื่อเกิดการชนกับผีบางตัว
+
+public void createDynamicBody(int i,Texture tt,float density,float friction, float restitution){
+BodyDef bodyDefdy = new BodyDef();
+bodyDefdy.type = BodyDef.BodyType.DynamicBody;
+Texture   can = tt;
+//Sprite scan = new Sprite(tt);
+int xPos = (int) spanda.getX();
+int yPos = (int) spanda.getY();
+
+//scan.setX(xPos); scan.setY(yPos);
+//sp.add(scan);
+bodyDefdy.position.set(xPos, yPos);
+bodyPanda = world.createBody(bodyDefdy);
+PolygonShape shapedy = new PolygonShape();
+shapedy.setAsBox(spanda.getWidth()/2, spanda.getHeight()/2);
+
+FixtureDef fixtureDefdy = new FixtureDef();
+fixtureDefdy.shape = shapedy;
+fixtureDefdy.density =density;
+fixtureDefdy.friction = friction;
+fixtureDefdy.restitution = restitution; //make it bounce
+Fixture fixturedy = bodyPanda.createFixture(fixtureDefdy);
+shapedy.dispose();
+}
+
+//ในเกมกำหนดผีแปดตัวบินในฉาก กำหนดให้บินจากขวามือไปซ้ายมือ
+
+//ตำแหน่งปล่อยผีเป็นไปตามอาเรย์ ptrObs เขียนเผื่อๆเป็นรอบๆไว้ อาจจะกำหนดตำแหน่งต่างกันก็ได้ แต่ตอนนี้ใช้แค่รอบเดียวแบบเดียว
+
+public void releaseObstacle(){
+sobs1.setPosition(ptrX, ptrObs[round][0]);
+sobs2.setPosition(sobs1.getX()+100, ptrObs[round][1]);
+sobs3.setPosition(sobs2.getX()+100, ptrObs[round][2]);
+sobs4.setPosition(sobs3.getX()+100, ptrObs[round][3]);
+sobs5.setPosition(sobs4.getX()+100, ptrObs[round][4]);
+sobs6.setPosition(sobs5.getX()+100, ptrObs[round][5]);
+sobs7.setPosition(sobs6.getX()+100, ptrObs[round][6]);
+sobs8.setPosition(sobs7.getX()+100, ptrObs[round][7]);
+
+}
+
+@Override
+public void render () {
+
+Gdx.gl.glClearColor(1, 0, 0, 1);
+Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+world.step(1/60f, 6, 2);  //add for BOX2D
+batch.setProjectionMatrix(camera.combined);
+
+camera.update();
+actorChAct++;obsChAct++;
+float dt = Gdx.graphics.getDeltaTime();
+updateObstaclePosition(dt);
+upDateActorPosition(dt);
+batch.begin();
+batch.draw(bg, 0, 0);
+sobs1.draw(batch);
+sobs2.draw(batch);
+sobs3.draw(batch);
+sobs4.draw(batch);
+sobs5.draw(batch);
+sobs6.draw(batch);
+sobs7.draw(batch);
+sobs8.draw(batch);
+batch.end();
+if (spanda.getY()<-100){
+batch.begin();
+spanda.draw(batch);
+font.draw(batch, “Good bye guys….”, camera.viewportWidth/2,camera.viewportHeight/2);
+batch.end();
+
+}
+
+//แสดง animation ของแพนด้า ซึ่งจะมีภาพ panda, panda2,panda3 
+if (pandaState.equals(“Normal”)){
+batch.begin();
+spanda.draw(batch);
+batch.end();
+if (actorChAct == 8){
+if (spanda.getTexture().equals(panda))
+spanda.setTexture(panda3);
+else if (spanda.getTexture().equals(panda2))
+spanda.setTexture(panda);
+else if (spanda.getTexture().equals(panda3))
+spanda.setTexture(panda2);
+
+actorChAct = 0;
+
+}
+
+//ถ้าตำแหน่งแพนด้าอยู่ในตำแหน่งมากกว่ากลางจอ ให้เลื่อนกล้อง
+if (spanda.getX()>camera.viewportWidth/2){
+if (camera.position.x <1310){
+camera.translate(1f+dt ,0f);
+camera.update();
+
+}else{
+System.out.println(” “+spanda.getX());
+camera.position.set(camera.viewportWidth/2,camera.viewportHeight/2,0);
+spanda.setX(100);
+}
+
+}
+
+checkIfHit();
+
+}else if (pandaState.equals(“Fall”)){
+
+//แพนด้าเคลื่อนที่ตาม Box2d
+spanda.setX(bodyPanda.getPosition().x);
+spanda.setY(bodyPanda.getPosition().y);
+batch.begin();
+spanda.draw(batch);
+font.draw(batch, “Tap to help me please ! “, spanda.getX(),spanda.getY()+spanda.getHeight()+5);
+batch.end();
+
+}
+
+}
+
+//เมธอดเอาไว้ตรวจสอบว่าชนผีตัวที่ชื่อ sobs2 หรือยัง ถ้าใช่ให้เปลี่ยนสถาะนะเป็น fall 
+
+//และสร้าง Body สำหรับแพนด้า
+
+private void checkIfHit() {
+// TODO Auto-generated method stub
+if(spanda.getBoundingRectangle().overlaps(sobs2.getBoundingRectangle())){
+spanda.setTexture(pandafall);
+pandaState = “Fall”;
+createDynamicBody(1,pandafall,0.5f,0.5f,0.5f);
+
+}
+
+}
+private void upDateActorPosition(float dt){
+spanda.setX(spanda.getX()+5*dt*10);
+
+}
+
+//เมธอดแสดงการเคลื่อนที่ของผี
+private void updateObstaclePosition(float dt) {
+// TODO Auto-generated method stub
+sobs1.setX(sobs1.getX()-5*dt*20);
+sobs2.setX(sobs2.getX()-5*dt*20);
+sobs3.setX(sobs3.getX()-5*dt*20);
+sobs4.setX(sobs4.getX()-5*dt*20);
+sobs5.setX(sobs5.getX()-5*dt*20);
+sobs6.setX(sobs6.getX()-5*dt*20);
+sobs7.setX(sobs7.getX()-5*dt*20);
+sobs8.setX(sobs8.getX()-5*dt*20);
+if (sobs1.getX()<-100)
+sobs1.setX(1700);
+if (sobs2.getX()<-100)
+sobs2.setX(1700);
+if (sobs3.getX()<-100)
+sobs3.setX(1700);
+if (sobs4.getX()<-100)
+sobs4.setX(1700);
+if (sobs5.getX()<-100)
+sobs5.setX(1700);
+if (sobs6.getX()<-100)
+sobs6.setX(1700);
+if (sobs7.getX()<-100)
+sobs7.setX(1700);
+if (sobs8.getX()<-100)
+sobs8.setX(1700);
+chObsAct(sobs1);chObsAct(sobs2);chObsAct(sobs3);
+chObsAct(sobs4);chObsAct(sobs5);chObsAct(sobs6);
+chObsAct(sobs7);chObsAct(sobs8);
+}
+
+//เมธอดแสดง animation ของผี
+public void chObsAct(Sprite s){
+if (obsChAct%30 == 0){
+if (s.getTexture().equals(obs1))
+s.setTexture(obs2);
+else     if (s.getTexture().equals(obs2))
+s.setTexture(obs3);
+else   s.setTexture(obs1);
+
+}
+
+}
+@Override
+public void dispose () {
+batch.dispose();
+//img.dispose();
+}
+
+@Override
+public boolean keyDown(int keycode) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean keyUp(int keycode) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean keyTyped(char character) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean touchDragged(int screenX, int screenY, int pointer) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean mouseMoved(int screenX, int screenY) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean scrolled(int amount) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean touchDown(float x, float y, int pointer, int button) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean tap(float x, float y, int count, int button) {
+// TODO Auto-generated method stub
+//Direction moves up
+//    System.out.println(” Body “+bodyPanda.getPosition().x+”,”+bodyPanda.getPosition().y);
+
+//    Vector2 direction = new Vector2(bodyPanda.getPosition().x , bodyPanda.getPosition().y +  spanda.getHeight() *4).nor();
+//    System.out.println(” Vecor “+direction.x+”,”+direction.y);
+//Vector2 direction = new Vector2(bodyPanda.getPosition().x ,400).nor();
+
+float speed = 65.0f;
+// bodyPanda.setLinearVelocity(  speed *direction.x,  speed* direction.y);
+if (pandaState.equals(“Fall”)){
+spanda.setPosition(spanda.getX(),spanda.getY());
+spanda.setTexture(panda);
+pandaState = “Normal”;
+System.out.println(“Help panda “);
+actorChAct = 0;
+}
+
+return false;
+}
+
+@Override
+public boolean longPress(float x, float y) {
+// TODO Auto-generated method stub
+return false;
+}
+
+//เมื่อ swipe ที่หน้าจอ
+
+@Override
+public boolean fling(float velocityX, float velocityY, int button) {
+// TODO Auto-generated method stub
+System.out.println(“Fling “);
+if (pandaState.equals(“Normal”)){
+
+//swipe ในแนวดิ่ง
+
+if(Math.abs(velocityY)>Math.abs(velocityX)){
+if(velocityY<0){
+spanda.setPosition(spanda.getX(),spanda.getY()+spanda.getHeight()/2);
+
+}else{
+
+spanda.setPosition(spanda.getX(),spanda.getY()-spanda.getHeight()/2);
+}
+}
+}//end state normal
+return false;
+}
+
+@Override
+public boolean pan(float x, float y, float deltaX, float deltaY) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean panStop(float x, float y, int pointer, int button) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean zoom(float initialDistance, float distance) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public boolean pinch(Vector2 initialPointer1, Vector2 initialPointer2,
+Vector2 pointer1, Vector2 pointer2) {
+// TODO Auto-generated method stub
+return false;
+}
+
+@Override
+public void pinchStop() {
+// TODO Auto-generated method stub
+
+}
+}
